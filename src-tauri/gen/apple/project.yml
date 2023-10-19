@@ -1,4 +1,4 @@
-name: app
+name: betterjet
 options:
   bundleIdPrefix: com.tauri
   deploymentTarget:
@@ -10,7 +10,7 @@ configs:
 settingGroups:
   app:
     base:
-      PRODUCT_NAME: bedjet-ios
+      PRODUCT_NAME: betterjet
       PRODUCT_BUNDLE_IDENTIFIER: com.tauri.app
       DEVELOPMENT_TEAM: 12345
 targetTemplates:
