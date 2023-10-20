@@ -3,10 +3,9 @@ import { setTemperature } from "../hooks/useSetTemp";
 import { OperatingMode, ParsedDeviceStatus } from "../types";
 import { CtoF } from "../util";
 import { useMantineTheme } from '@mantine/core';
-import { useElementSize } from '@mantine/hooks';
 import { useState } from "react";
 import chroma from "chroma-js"
-//const SliderMarks = Object.values(TempRanges).map(val => ({ value: val.range.min, label: val.mode }))
+import css from "./TempSlider.module.css"
 
 interface TempSliderProps {
     bedjet: string,
@@ -14,7 +13,6 @@ interface TempSliderProps {
 }
 export default function TempSlider({ bedjet, data }: TempSliderProps) {
     const theme = useMantineTheme();
-    const { ref, width } = useElementSize();
     const [selectedValue, setSelectedValue] = useState(Math.round(CtoF(data?.target_temp ?? 0)))
     if (!data) {
         return (
@@ -30,11 +28,24 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
     const red = theme.colors.red[6]
 
     const gradientStep = chroma.scale([blue, red]).mode("hcl").padding(-0.75);
+
+
     return (
         <Slider
             disabled={data.operating_mode === OperatingMode.TurboHeat || data.operating_mode === OperatingMode.NormalHeat}
             min={66}
             max={92}
+            classNames={{
+                markWrapper: css.markWrapper,
+                mark: css.mark,
+                markLabel: css.markLabel,
+                track: css.track,
+                bar: css.bar,
+                thumb: css.thumb,
+                label: css.label,
+                root: css.root,
+                trackContainer: css.trackContainer
+            }}
             marks={
                 [
                     {
@@ -43,7 +54,6 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
                     },
                 ]
             }
-            ref={ref}
             labelAlwaysOn
             defaultValue={Math.round(CtoF(data.target_temp))}
             label={(label) => `${label} °F`}
@@ -51,33 +61,17 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
             onChangeEnd={(value) => {
                 setTemperature(bedjet, data, value)
             }}
+            unstyled
             styles={{
-                label: {
-                    top: 0,
-                    height: rem(28),
-                    width: rem(38),
-                    lineHeight: rem(28),
-                    padding: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 700,
-                    backgroundColor: "transparent"
-
-                },
                 thumb: {
                     backgroundColor: `${gradientStep(selectedPercent)}`,
                     height: rem(28),
                     width: rem(38),
                     border: "none"
                 },
-               // markWrapper: { transition: `left 0.3s ease-out` },
                 bar: {
-                    background: `linear-gradient(to right, ${gradientStep.colors(10)})`,
-                    backgroundSize: `${width}px 100%`,
-                    backgroundPosition: `-${selectedPercent}px 0`,
-                    backgroundRepeat: "no-repeat"
-                }
+                    background: "none"
+                },
             }}
         />
     )

@@ -22,6 +22,7 @@ export default function FanSlider({ data, bedjet }: FanSliderProps) {
             onChangeEnd={(value) =>
                 send_command(bedjet, { type: "SetFan", content: { type: "Percent", value } })
             }
+            marks={[{ value: 5, label: "5%" }, { value: 100, label: "100%" }]}
             styles={{
                 label: {
                     top: 0,

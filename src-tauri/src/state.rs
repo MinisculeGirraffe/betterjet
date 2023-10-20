@@ -381,9 +381,9 @@ impl BedJet {
 
         if let Some(handle) = handle {
             if prev != Some(status) {
-                println!("id: {:?}", self.id);
+                let status = ParsedDeviceStatus::from(status);
                 let res = handle.emit_all(&self.id, ParsedDeviceStatus::from(status));
-                println!("Emit Result: {:?}", res);
+                println!("Emitting: {:#?}", status);
             }
         }
 
