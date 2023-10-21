@@ -9,6 +9,7 @@ export function BluetoothAdapterSelect() {
       data={adapters.data?.adapters ?? []}
       value={adapters.data?.selected}
       label="Bluetooth Adapter"
+      allowDeselect={false}
     />
   )
 }

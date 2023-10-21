@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "prepare": "ts-patch install",
     "ios:dev": "TAURI_APPLE_DEVELOPMENT_TEAM=123 tauri ios dev",
     "tauri": "tauri",
     "typegen": "typeshare ./src-tauri --lang=typescript --output-file=./src/types.ts"
@@ -20,7 +21,9 @@
     "@tauri-apps/plugin-log": "^2.0.0-alpha.1",
     "chroma-js": "^2.4.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "ts-pattern": "^5.0.5"
+
   },
   "devDependencies": {
     "@types/chroma-js": "^2.4.1",
@@ -37,7 +40,9 @@
     "postcss": "^8.4.31",
     "postcss-preset-mantine": "^1.9.0",
     "postcss-simple-vars": "^7.0.1",
-    "typescript": "^5.0.2",
+    "ts-node": "^10.9.1",
+    "ts-patch": "^3.0.2",
+    "typescript": "^5.2.2",
     "vite": "^4.4.5"
   }
 }
