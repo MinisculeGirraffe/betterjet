@@ -277,28 +277,26 @@ pub enum CommandClass {
     SetParameter = 0x40,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 #[typeshare]
 pub enum TempParam {
     /// The temperature in degrees Celsius
-    Celsius(u8),
+    Celsius(f32),
     /// The temperature in degrees Fahrenheit
-    Fahrenheit(u8),
+    Fahrenheit(f32),
 }
 
 impl Encode for TempParam {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> Result<(), InterfaceError> {
         // The actual value we need to write is stored in units of 0.5 Celsius, so we multiply by 2
         // or convert to Celsius and multiply by 2
+
         let value = match self {
-            TempParam::Celsius(val) => val.saturating_mul(2),
-            TempParam::Fahrenheit(val) => val
-                .saturating_sub(32)
-                .saturating_mul(5)
-                .saturating_div(9)
-                .saturating_mul(2),
+            TempParam::Celsius(val) => val * 2.0,
+            TempParam::Fahrenheit(val) => (val - 32.0) * 5.0 / 9.0 * 2.0,
         };
+        let value = value.clamp(0.0, 255.0) as u8;
         writer.write_all(&[value])?;
         Ok(())
     }
@@ -337,7 +335,7 @@ impl Encode for FanParam {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[typeshare]
 #[serde(tag = "type", content = "content")]
 /// A higher level enum containing the commands that can be sent to the device, and the parameters to those commands

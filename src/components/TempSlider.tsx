@@ -1,28 +1,39 @@
-import { Slider, rem,Text, Group} from "@mantine/core";
+import { Slider, rem, Text, Group } from "@mantine/core";
 import { setTemperature } from "../hooks/useSetTemp";
-import { OperatingMode, ParsedDeviceStatus } from "../types";
-import { CtoF } from "../util";
+import { OperatingMode, ParsedDeviceStatus, TemperatureUnit } from "../types";
+import { CtoF, FtoC } from "../util";
 import { useMantineTheme } from '@mantine/core';
-import { useState } from "react";
 import chroma from "chroma-js"
 import css from "./TempSlider.module.css"
 import { IconTemperature } from '@tabler/icons-react';
+import { useConfig, useSyncedState } from "../hooks";
+
 interface TempSliderProps {
     bedjet: string,
     data?: ParsedDeviceStatus
 }
+
+
+
 export default function TempSlider({ bedjet, data }: TempSliderProps) {
     const theme = useMantineTheme();
-    const [selectedValue, setSelectedValue] = useState(Math.round(CtoF(data?.target_temp ?? 0)))
-    if (!data) {
+    const config = useConfig().data;
+    console.log(data)
+    const convert = (temp: number) => config?.unit === TemperatureUnit.Celsius ? temp : CtoF(temp);
+    const toFixed = (temp: number) => Number(temp.toFixed(1));
+    const convertFixed = (temp: number) => toFixed(convert(temp));
+    const tempSymbol = config?.unit === TemperatureUnit.Celsius ? "°C" : "°F";
+    const [value, setValue] = useSyncedState(undefined, convertFixed(data?.target_temp ?? 0), bedjet)
+
+    if (!value || !data || !config) {
         return (
             <Slider disabled={true} />
         )
     }
-    const min = 66
-    const max = 92
+    const min = convertFixed(19)
+    const max = convertFixed(33.5)
     // const actualPercent = (actualValue - min) / (max - min)
-    const selectedPercent = (selectedValue - min) / (max - min);
+    const selectedPercent = (value - min) / (max - min);
 
     const blue = theme.colors.blue[6]
     const red = theme.colors.red[6]
@@ -34,13 +45,14 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
     return (
         <>
             <Group gap={"xs"}>
-                <IconTemperature/>
-               <Text size="sm">Temperature</Text>
-               </Group>
+                <IconTemperature />
+                <Text size="sm">Temperature</Text>
+            </Group>
             <Slider
                 disabled={data.operating_mode === OperatingMode.TurboHeat || data.operating_mode === OperatingMode.NormalHeat}
-                min={66}
-                max={92}
+                min={min}
+                max={max}
+                step={config.unit === TemperatureUnit.Celsius ? 0.5 : 1}
                 vars={() => ({ "root": { "--slider-color": gradientStep(selectedPercent).hex() } })}
                 classNames={{
                     track: css.track,
@@ -49,17 +61,17 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
                 marks={
                     [
                         {
-                            value: Number(CtoF(data.actual_temp).toFixed(1)),
-                            label: `Actual: ${CtoF(data.actual_temp).toFixed(1)}°F`
+                            value: convertFixed(data.actual_temp),
+                            label: `Actual: ${convertFixed(data.actual_temp)}${tempSymbol}`
                         },
                     ]
                 }
                 labelAlwaysOn
-                defaultValue={Math.round(CtoF(data.target_temp))}
-                label={(label) => `${label} °F`}
-                onChange={(val) => setSelectedValue(val)}
+                value={value}
+                label={(label) => `${config.unit === TemperatureUnit.Celsius ? label : Math.round(label)}${tempSymbol}`}
+                onChange={(val) => setValue(val)}
                 onChangeEnd={(value) => {
-                    setTemperature(bedjet, data, value)
+                    setTemperature(bedjet, data, { type: "Celsius", value: config.unit === TemperatureUnit.Celsius ? value : FtoC(value) })
                 }}
 
                 styles={{

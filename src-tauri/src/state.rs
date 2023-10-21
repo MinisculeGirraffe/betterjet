@@ -1,11 +1,3 @@
-use std::{
-    collections::HashMap,
-    io::{Cursor, Read},
-    pin::Pin,
-    sync::Arc,
-    task::Poll,
-};
-
 use crate::proto::{Command, Decode, DeviceStatus, Encode, InterfaceError, ParsedDeviceStatus};
 use btleplug::{
     api::{
@@ -15,12 +7,21 @@ use btleplug::{
     platform::{Adapter, Manager, Peripheral},
 };
 use futures::{Future, FutureExt, Stream, StreamExt};
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::HashMap,
+    io::{Cursor, Read},
+    pin::Pin,
+    sync::Arc,
+    task::Poll,
+};
 use tauri::{AppHandle, Manager as TauriManager};
 use thiserror::Error;
 use tokio::{
-    sync::{watch, Mutex},
+    sync::{watch, Mutex, RwLock},
     task::{JoinError, JoinHandle},
 };
+use typeshare::typeshare;
 use uuid::Uuid;
 
 #[derive(Error, Debug)]
@@ -43,7 +44,7 @@ pub struct AppState {
     handle: AppHandle,
     btle_manager: Manager,
     pub selected_adapter: Adapter,
-    event_task: Option<tokio::task::JoinHandle<()>>,
+    pub event_task: Option<tokio::task::JoinHandle<()>>,
     pub all_adapters: Vec<Adapter>,
     connected_devices: Vec<BedJet>,
     pub db: DBState,
@@ -53,7 +54,6 @@ impl AppState {
     pub async fn new(handle: AppHandle, db: sled::Db) -> AppState {
         let manager = btleplug::platform::Manager::new().await.unwrap();
         let adapters = manager.adapters().await.unwrap();
-
         let mut value = AppState {
             handle,
             btle_manager: manager,
@@ -63,14 +63,12 @@ impl AppState {
             connected_devices: Vec::new(),
             db: DBState::new(db),
         };
-        value.spawn_event_task();
 
         value
     }
 
     async fn set_adapter(&mut self, adapter: Adapter) {
         self.selected_adapter = adapter;
-        self.spawn_event_task();
 
         //Disconnect all the disconnected devices
         let mut connected_devices = self.connected_devices.clone();
@@ -78,19 +76,6 @@ impl AppState {
             let _ = device.disconnect().await;
         }
         self.connected_devices.clear();
-    }
-
-    fn spawn_event_task(&mut self) {
-        if let Some(task) = self.event_task.take() {
-            task.abort();
-            self.event_task = None
-        }
-        let handle = self.handle.clone();
-        let adapter = self.selected_adapter.clone();
-        let task = tokio::spawn(async move {
-            handle_events(handle, adapter).await;
-        });
-        self.event_task = Some(task);
     }
 
     pub async fn scan_devices(&self) -> Result<(), btleplug::Error> {
@@ -112,8 +97,10 @@ impl AppState {
     pub async fn connect_peripheral(&mut self, id: &str) -> Result<(), DeviceError> {
         let device = self.find_device_by_id(id);
         if let Some(device) = device {
-            let _ = device.connect(Some(self.handle.clone())).await;
-            let _ = device.listen_status().await;
+            let is_connected = device.peripheral.is_connected().await?;
+            if !is_connected {
+                device.connect(Some(self.handle.clone())).await?;
+            }
             return Ok(());
         }
 
@@ -127,7 +114,7 @@ impl AppState {
         let bedjet = BedJet::new(peripheral, Some(self.handle.clone())).await?;
         bedjet.listen_status().await?;
         let name = bedjet.get_friendly_name().await?;
-        self.db.set_cached_name(&id, &name);
+        self.db.set_cached_name(id, &name);
 
         self.connected_devices.push(bedjet);
         println!("Successfully added device");
@@ -137,31 +124,77 @@ impl AppState {
     pub async fn disconnect_peripheral(&mut self, id: &str) {
         let device = self.find_device_by_id(id);
         if let Some(device) = device {
-            device.unlisten_status().await;
             let _ = device.disconnect().await;
         }
         self.connected_devices.retain(|i| i.id != id);
     }
 }
 
-async fn handle_events(handle: tauri::AppHandle, adapter: Adapter) {
-    let mut events = adapter.events().await.unwrap();
-    /*while let Some(event) = events.next().await {
+#[typeshare]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct PeripheralResult {
+    pub id: String,
+    pub name: Option<String>,
+    pub connected: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "value")]
+#[typeshare]
+enum DeviceEvent {
+    Discovered(PeripheralResult),
+    Disconnected(PeripheralResult),
+    Connected(PeripheralResult),
+}
+
+pub async fn handle_events(state: Arc<RwLock<AppState>>) -> Result<(), btleplug::Error> {
+    let (handle, mut events) = {
+        let state = state.read().await;
+        let handle = state.handle.clone();
+        let events = state.selected_adapter.events().await?;
+        (handle, events)
+    };
+
+    while let Some(event) = events.next().await {
         match event {
-            CentralEvent::DeviceDiscovered(id) => todo!(),
-            CentralEvent::DeviceUpdated(_) => todo!(),
-            CentralEvent::DeviceConnected(_) => todo!(),
-            CentralEvent::DeviceDisconnected(id) => {}
-            CentralEvent::ManufacturerDataAdvertisement {
-                id,
-                manufacturer_data,
-            } => todo!(),
-            CentralEvent::ServiceDataAdvertisement { id, service_data } => {
-                println!("Service Data Advertisement: {:?} {:?}", id, service_data)
+            CentralEvent::DeviceDiscovered(id) => {
+                let id = id.to_string();
+                let name = { state.read().await.db.get_cached_name(&id) };
+                let event = DeviceEvent::Discovered(PeripheralResult {
+                    id,
+                    name,
+                    connected: false,
+                });
+                println!("Emitting: {:#?}", event);
+                let _ = handle.emit_all("DeviceEvent", event);
             }
-            CentralEvent::ServicesAdvertisement { id, services } => todo!(),
-        }
-    } */
+            CentralEvent::DeviceDisconnected(id) => {
+                let id = id.to_string();
+                let name = { state.read().await.db.get_cached_name(&id) };
+                let event = DeviceEvent::Disconnected(PeripheralResult {
+                    id,
+                    name,
+                    connected: false,
+                });
+                println!("Emitting: {:#?}", event);
+                let _ = handle.emit_all("DeviceEvent", event);
+            }
+            CentralEvent::DeviceConnected(id) => {
+                let id = id.to_string();
+                let name = { state.read().await.db.get_cached_name(&id) };
+                let event = DeviceEvent::Connected(PeripheralResult {
+                    id,
+                    name,
+                    connected: true,
+                });
+                println!("Emitting: {:#?}", event);
+                let _ = handle.emit_all("DeviceEvent", event);
+            }
+            _ => {}
+        };
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -170,12 +203,18 @@ pub struct DBState {
 }
 
 impl DBState {
+    pub const DEVICE_KEY: &'static str = "devices";
+    pub const CONFIG_KEY: &'static str = "config";
+
     pub fn new(db: sled::Db) -> DBState {
         DBState { db }
     }
+    pub fn flush(&self) -> Result<usize, sled::Error> {
+        self.db.flush()
+    }
     pub fn get_cached_name(&self, id: &str) -> Option<String> {
         self.db
-            .get(id)
+            .get(format!("{}:{}", Self::DEVICE_KEY, id))
             .ok()
             .flatten()
             .as_deref()
@@ -184,7 +223,48 @@ impl DBState {
     }
 
     pub fn set_cached_name(&self, id: &str, name: &str) {
-        self.db.insert(id, name.as_bytes()).unwrap();
+        self.db
+            .insert(format!("{}:{}", Self::DEVICE_KEY, id), name)
+            .unwrap();
+    }
+
+    pub fn get_config(&self) -> Option<UserPreferences> {
+        self.db
+            .get(Self::CONFIG_KEY)
+            .ok()
+            .flatten()
+            .as_deref()
+            .and_then(|i| rmp_serde::from_slice(i).ok())
+    }
+    pub fn set_config(&self, config: &UserPreferences) {
+        println!("Setting config: {:#?}", config);
+        let data = rmp_serde::to_vec(config).unwrap();
+        self.db.insert(Self::CONFIG_KEY, data).unwrap();
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[typeshare]
+enum TemperatureUnit {
+    Fahrenheit,
+    Celsius,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[typeshare]
+pub struct UserPreferences {
+    adapter: String,
+    unit: TemperatureUnit,
+    autoconnect_last_device: bool,
+}
+
+impl Default for UserPreferences {
+    fn default() -> Self {
+        Self {
+            adapter: String::new(),
+            unit: TemperatureUnit::Fahrenheit,
+            autoconnect_last_device: false,
+        }
     }
 }
 
@@ -411,8 +491,8 @@ impl BedJet {
         if let Some(handle) = handle {
             if prev != Some(status) {
                 let status = ParsedDeviceStatus::from(status);
-                let res = handle.emit_all(&self.id, ParsedDeviceStatus::from(status));
-                println!("Emitting: {:#?}", status);
+                let res = handle.emit_all(&self.id, status);
+                //  println!("Emitting: {:#?}", status);
             }
         }
 

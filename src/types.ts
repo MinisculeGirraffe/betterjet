@@ -7,12 +7,6 @@ export interface AdapterResult {
 	adapters: string[];
 }
 
-export interface PeripheralResult {
-	id: string;
-	name?: string;
-	connected: boolean;
-}
-
 export enum OperatingMode {
 	Standby = "Standby",
 	NormalHeat = "NormalHeat",
@@ -102,6 +96,23 @@ export interface DeviceStatusEvent {
 	status: DeviceStatus;
 }
 
+export interface PeripheralResult {
+	id: string;
+	name?: string;
+	connected: boolean;
+}
+
+export enum TemperatureUnit {
+	Fahrenheit = "Fahrenheit",
+	Celsius = "Celsius",
+}
+
+export interface UserPreferences {
+	adapter: string;
+	unit: TemperatureUnit;
+	autoconnect_last_device: boolean;
+}
+
 export enum ButtonCode {
 	Stop = "Stop",
 	Cool = "Cool",
@@ -172,4 +183,9 @@ export type Command =
 export type SetParamKind = 
 	/** Cannot contain a String longer than 15 bytes. */
 	| { type: "DeviceName", value: string };
+
+export type DeviceEvent = 
+	| { type: "Discovered", value: PeripheralResult }
+	| { type: "Disconnected", value: PeripheralResult }
+	| { type: "Connected", value: PeripheralResult };
 

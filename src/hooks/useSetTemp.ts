@@ -1,12 +1,18 @@
-import { send_command } from "../queries";
-import { ButtonCode, OperatingMode, ParsedDeviceStatus } from "../types";
+import { send_command } from "../commands";
+import {
+  ButtonCode,
+  OperatingMode,
+  ParsedDeviceStatus,
+  TempParam,
+} from "../types";
+import { FtoC } from "../util";
 
 type TempRange = { min: number; max: number };
 
 export const TempRanges: { mode: OperatingMode; range: TempRange }[] = [
-  { mode: OperatingMode.Cool, range: { min: 66, max: 79 } },
-  { mode: OperatingMode.Dry, range: { min: 80, max: 89 } },
-  { mode: OperatingMode.ExtendedHeat, range: { min: 90, max: 92 } },
+  { mode: OperatingMode.Cool, range: { min: 19, max: 25 } },
+  { mode: OperatingMode.Dry, range: { min: 25, max: 30 } },
+  { mode: OperatingMode.ExtendedHeat, range: { min: 30, max: 33.5 } },
 ];
 
 export const ModeButtonMapping: { [key in OperatingMode]?: ButtonCode } = {
@@ -18,16 +24,24 @@ export const ModeButtonMapping: { [key in OperatingMode]?: ButtonCode } = {
 export async function setTemperature(
   id: string,
   deviceStatus: ParsedDeviceStatus,
-  targetTemp: number,
+  param: TempParam,
 ): Promise<void> {
   let requiredMode: OperatingMode | undefined;
-
+  const targetTemp = Math.max(
+    Math.min(
+      param.type === "Fahrenheit" ? FtoC(param.value) : param.value,
+      33.5,
+    ),
+    19,
+  );
+  console.log(targetTemp);
   for (const { mode, range } of TempRanges) {
     if (targetTemp >= range.min && targetTemp <= range.max) {
       requiredMode = mode;
       break;
     }
   }
+  console.log(requiredMode);
 
   if (requiredMode === undefined) {
     throw new Error("Invalid target temperature");
@@ -67,7 +81,6 @@ export async function setTemperature(
 
   await send_command(id, {
     type: "SetTemp",
-    content: { "type": "Fahrenheit", value: targetTemp },
+    content: { "type": "Celsius", value: targetTemp },
   });
 }
-

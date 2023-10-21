@@ -1,12 +1,14 @@
+use std::sync::Arc;
+
 use crate::proto::{Command, ParsedDeviceStatus};
-use crate::state::AppState;
+use crate::state::{AppState, PeripheralResult, UserPreferences};
 use btleplug::api::{Central, Peripheral as _};
 use serde::Serialize;
 use tauri::State;
 use tokio::sync::RwLock;
 use typeshare::typeshare;
 
-type AppStateHandle<'a> = State<'a, RwLock<AppState>>;
+type AppStateHandle<'a> = State<'a, Arc<RwLock<AppState>>>;
 
 #[typeshare]
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -25,14 +27,6 @@ pub async fn get_btle_adapters(state: AppStateHandle<'_>) -> Result<AdapterResul
         adapters.push(name);
     }
     Ok(AdapterResult { selected, adapters })
-}
-
-#[typeshare]
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct PeripheralResult {
-    id: String,
-    name: Option<String>,
-    connected: bool,
 }
 
 #[tauri::command]
@@ -75,6 +69,18 @@ pub async fn disconnect_device(state: AppStateHandle<'_>, id: String) -> Result<
 }
 
 #[tauri::command]
+pub async fn get_config(state: AppStateHandle<'_>) -> Result<UserPreferences, ()> {
+    let state = state.read().await.db.get_config().unwrap_or_default();
+    Ok(state)
+}
+
+#[tauri::command]
+pub async fn set_config(state: AppStateHandle<'_>, config: UserPreferences) -> Result<(), ()> {
+    state.read().await.db.set_config(&config);
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn send_command(
     state: AppStateHandle<'_>,
     id: String,
@@ -107,6 +113,5 @@ pub async fn get_status(
         .await
         .ok()
         .map(|i| i.into());
-    println!("status: {:?}", status);
-    Ok(status.into())
+    Ok(status)
 }

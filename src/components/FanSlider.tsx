@@ -1,16 +1,16 @@
 import { Group, Slider, rem, Text } from "@mantine/core"
 import { ParsedDeviceStatus } from "../types"
-import { send_command } from "../queries"
+import { send_command } from "../commands"
 import { IconPropeller } from '@tabler/icons-react';
-
-import { useState } from "react";
+import { useSyncedState } from "../hooks";
 interface FanSliderProps {
     bedjet: string,
     data?: ParsedDeviceStatus
 }
 
 export default function FanSlider({ data, bedjet }: FanSliderProps) {
-    const [value, setValue] = useState(data?.fan_step ?? 5)
+    const [value, setValue] = useSyncedState(data?.fan_step, 0, bedjet)
+
     if (!data) return (
         <Slider disabled={true} />
     )
@@ -28,7 +28,6 @@ export default function FanSlider({ data, bedjet }: FanSliderProps) {
                 step={5}
                 value={value}
                 labelAlwaysOn
-                defaultValue={data?.fan_step}
                 label={label => `${label}%`}
                 onChange={(value) => setValue(value)}
                 onChangeEnd={(value) =>

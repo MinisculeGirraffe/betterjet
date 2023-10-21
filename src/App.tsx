@@ -5,11 +5,14 @@ import TempSlider from './components/TempSlider';
 import FanSlider from './components/FanSlider';
 import { DeviceList } from './components/DeviceList';
 import { ModeControl } from './components/ModeControl';
-import { useDeviceStatus } from './hooks';
+import { useAdapters, useConfig, useDeviceStatus } from './hooks';
 import { useHashContext } from './context/HashContext';
 import { match } from 'ts-pattern';
 import { IconSettings, IconHome } from '@tabler/icons-react';
-import { BluetoothAdapterSelect } from './components/BluetoothAdapterSelect';
+
+import { TemperatureUnit, UserPreferences } from './types';
+import { set_config } from './commands';
+
 
 
 function MainPage({ id }: { id: string | null }) {
@@ -30,10 +33,38 @@ function MainPage({ id }: { id: string | null }) {
 }
 
 function SettingsPage() {
+  const config = useConfig();
+  const adapters = useAdapters();
+
+  if (!config.data) {
+    return <p>Loading...</p>
+  }
+
   return (
     <Container>
-      <BluetoothAdapterSelect />
-      <Select label="Units" data={["Imperial", "Metric"]} allowDeselect={false} value={"Imperial"}></Select>
+      <Select
+        disabled={adapters.isLoading}
+        data={adapters.data?.adapters ?? []}
+        value={adapters.data?.selected}
+        label="Bluetooth Adapter"
+        allowDeselect={false}
+        onChange={(adapter) => {
+          if (!adapter) return
+          set_config({ ...config.data, adapter } as UserPreferences)
+          config.refetch()
+        }}
+      />
+      <Select label="Units"
+        data={Object.values(TemperatureUnit)}
+        allowDeselect={false}
+        value={config.data.unit}
+        onChange={(unit) => {
+          if (!unit) return;
+
+          set_config({ ...config.data, unit } as UserPreferences)
+          config.refetch()
+        }}
+      />
     </Container>
   )
 }
@@ -43,10 +74,10 @@ function App() {
   const [id, setId] = useState<string | null>(null);
 
   return (
-    <AppShell header={{"offset": true,height:35}}>
+    <AppShell header={{ "offset": true, height: 35 }}>
       <AppShell.Header>
         <Group >
-          <DeviceList  onChange={setId} value={id} />
+          <DeviceList onChange={setId} value={id} />
           {match(route)
             .with("#Main", () =>
               <ActionIcon variant="outline" color="gray" onClick={() => setRoute("#Settings")}>
