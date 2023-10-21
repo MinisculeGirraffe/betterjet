@@ -47,12 +47,7 @@ pub async fn scan_devices(state: AppStateHandle<'_>) -> Result<Vec<PeripheralRes
     for periph in peripherals.iter() {
         let id = periph.id().to_string();
         let connected = periph.is_connected().await.unwrap_or(false);
-        let mut name: Option<String> = None;
-
-        let device = state.find_device_by_id(&id);
-        if let Some(device) = device {
-            name = device.get_friendly_name().await.ok();
-        }
+        let name = state.db.get_cached_name(&id);
 
         result.push(PeripheralResult {
             id,

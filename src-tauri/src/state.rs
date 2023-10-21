@@ -46,10 +46,11 @@ pub struct AppState {
     event_task: Option<tokio::task::JoinHandle<()>>,
     pub all_adapters: Vec<Adapter>,
     connected_devices: Vec<BedJet>,
+    pub db: DBState,
 }
 
 impl AppState {
-    pub async fn new(handle: AppHandle) -> AppState {
+    pub async fn new(handle: AppHandle, db: sled::Db) -> AppState {
         let manager = btleplug::platform::Manager::new().await.unwrap();
         let adapters = manager.adapters().await.unwrap();
 
@@ -60,6 +61,7 @@ impl AppState {
             event_task: None,
             all_adapters: adapters,
             connected_devices: Vec::new(),
+            db: DBState::new(db),
         };
         value.spawn_event_task();
 
@@ -124,6 +126,9 @@ impl AppState {
 
         let bedjet = BedJet::new(peripheral, Some(self.handle.clone())).await?;
         bedjet.listen_status().await?;
+        let name = bedjet.get_friendly_name().await?;
+        self.db.set_cached_name(&id, &name);
+
         self.connected_devices.push(bedjet);
         println!("Successfully added device");
         Ok(())
@@ -157,6 +162,30 @@ async fn handle_events(handle: tauri::AppHandle, adapter: Adapter) {
             CentralEvent::ServicesAdvertisement { id, services } => todo!(),
         }
     } */
+}
+
+#[derive(Debug, Clone)]
+pub struct DBState {
+    db: sled::Db,
+}
+
+impl DBState {
+    pub fn new(db: sled::Db) -> DBState {
+        DBState { db }
+    }
+    pub fn get_cached_name(&self, id: &str) -> Option<String> {
+        self.db
+            .get(id)
+            .ok()
+            .flatten()
+            .as_deref()
+            .map(String::from_utf8_lossy)
+            .map(|i| i.to_string())
+    }
+
+    pub fn set_cached_name(&self, id: &str, name: &str) {
+        self.db.insert(id, name.as_bytes()).unwrap();
+    }
 }
 
 pub struct WatchStream<T>
