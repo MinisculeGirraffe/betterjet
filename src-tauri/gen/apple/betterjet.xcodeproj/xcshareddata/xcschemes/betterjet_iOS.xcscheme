@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E86255CB8A1836C0BF0C0E14"
-               BuildableName = "bedjet-ios.app"
-               BlueprintName = "app_iOS"
-               ReferencedContainer = "container:app.xcodeproj">
+               BlueprintIdentifier = "E65BB467F22FAA9B10A3EAB5"
+               BuildableName = "betterjet.app"
+               BlueprintName = "betterjet_iOS"
+               ReferencedContainer = "container:betterjet.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -30,10 +30,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E86255CB8A1836C0BF0C0E14"
-            BuildableName = "bedjet-ios.app"
-            BlueprintName = "app_iOS"
-            ReferencedContainer = "container:app.xcodeproj">
+            BlueprintIdentifier = "E65BB467F22FAA9B10A3EAB5"
+            BuildableName = "betterjet.app"
+            BlueprintName = "betterjet_iOS"
+            ReferencedContainer = "container:betterjet.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <EnvironmentVariables>
@@ -65,10 +65,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E86255CB8A1836C0BF0C0E14"
-            BuildableName = "bedjet-ios.app"
-            BlueprintName = "app_iOS"
-            ReferencedContainer = "container:app.xcodeproj">
+            BlueprintIdentifier = "E65BB467F22FAA9B10A3EAB5"
+            BuildableName = "betterjet.app"
+            BlueprintName = "betterjet_iOS"
+            ReferencedContainer = "container:betterjet.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
@@ -94,10 +94,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E86255CB8A1836C0BF0C0E14"
-            BuildableName = "bedjet-ios.app"
-            BlueprintName = "app_iOS"
-            ReferencedContainer = "container:app.xcodeproj">
+            BlueprintIdentifier = "E65BB467F22FAA9B10A3EAB5"
+            BuildableName = "betterjet.app"
+            BlueprintName = "betterjet_iOS"
+            ReferencedContainer = "container:betterjet.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
