@@ -43,6 +43,7 @@ export function DeviceList({ onChange, value }: DeviceListProps) {
     }, [devices.data, selectedOption?.id, value])
     return (
         <Combobox
+
             store={combobox}
             withinPortal={false}
             onOptionSubmit={(val) => {
@@ -55,6 +56,13 @@ export function DeviceList({ onChange, value }: DeviceListProps) {
                     component="button"
                     type="button"
                     pointer
+                    styles={
+                        {
+                            root: {
+                                flexGrow: 1,
+                                flexWrap: "nowrap"
+                            }
+                        }}
                     rightSection={<Combobox.Chevron />}
                     onClick={() => combobox.toggleDropdown()}
                     rightSectionPointerEvents="none"

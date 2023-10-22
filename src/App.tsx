@@ -1,4 +1,4 @@
-import { ActionIcon, AppShell, Container, Group, Select, Space, Stack } from '@mantine/core';
+import { ActionIcon, AppShell, Container, Group, MantineProvider, Select, Space, Stack, Text } from '@mantine/core';
 import { useState } from 'react';
 import { secondsToHHMM } from './util';
 import TempSlider from './components/TempSlider';
@@ -8,21 +8,25 @@ import { ModeControl } from './components/ModeControl';
 import { useAdapters, useConfig, useDeviceStatus } from './hooks';
 import { useHashContext } from './context/HashContext';
 import { match } from 'ts-pattern';
-import { IconSettings, IconHome } from '@tabler/icons-react';
+import { IconSettings, IconHome, IconClock } from '@tabler/icons-react';
 
 import { TemperatureUnit, UserPreferences } from './types';
 import { set_config } from './commands';
-
-
 
 function MainPage({ id }: { id: string | null }) {
   const status = useDeviceStatus(id);
   return (
     <Container>
       {!!id &&
-        <Stack>
-          <p>{secondsToHHMM(status.data?.remaining_duration ?? 0)}</p>
+        <Stack pt={"lg"}>
           <ModeControl bedjet={id} data={status.data} />
+          <div>
+            <Group>
+              <IconClock />
+              <Text>Time Left</Text>
+            </Group>
+            <Text>{secondsToHHMM(status.data?.remaining_duration ?? 0)}</Text>
+          </div>
           <TempSlider bedjet={id} data={status.data} />
           <Space />
           <FanSlider bedjet={id} data={status.data} />
@@ -74,32 +78,33 @@ function App() {
   const [id, setId] = useState<string | null>(null);
 
   return (
-    <AppShell header={{ "offset": true, height: 35 }}>
-      <AppShell.Header>
-        <Group >
-          <DeviceList onChange={setId} value={id} />
+    <MantineProvider defaultColorScheme="auto">
+      <AppShell header={{ "offset": true, height: 35 }}>
+        <AppShell.Header>
+          <Group px={"sm"} >
+            <DeviceList onChange={setId} value={id} />
+            {match(route)
+              .with("#Main", () =>
+                <ActionIcon variant="outline" color="gray" onClick={() => setRoute("#Settings")}>
+                  <IconSettings />
+                </ActionIcon>
+              )
+              .with("#Settings", () =>
+                <ActionIcon variant="outline" color="gray" onClick={() => setRoute("#Main")}>
+                  <IconHome />
+                </ActionIcon>)
+              .exhaustive()}
+          </Group>
+        </AppShell.Header>
+        <AppShell.Main>
           {match(route)
-            .with("#Main", () =>
-              <ActionIcon variant="outline" color="gray" onClick={() => setRoute("#Settings")}>
-                <IconSettings />
-              </ActionIcon>
-            )
-            .with("#Settings", () =>
-              <ActionIcon variant="outline" color="gray" onClick={() => setRoute("#Main")}>
-                <IconHome />
-              </ActionIcon>)
+            .with("#Main", () => <MainPage id={id} />)
+            .with("#Settings", () => <SettingsPage />)
             .exhaustive()}
-        </Group>
-      </AppShell.Header>
-      <AppShell.Main>
-        {match(route)
-          .with("#Main", () => <MainPage id={id} />)
-          .with("#Settings", () => <SettingsPage />)
-          .exhaustive()}
-      </AppShell.Main>
+        </AppShell.Main>
 
-    </AppShell>
-
+      </AppShell>
+    </MantineProvider>
   )
 }
 

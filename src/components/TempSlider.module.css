@@ -1,10 +1,5 @@
 .track::before {
-   background: linear-gradient(to right, rgb(34, 139, 230), rgb(34, 139, 230), rgb(34, 139, 230), rgb(84, 134, 231), rgb(176, 111, 213), rgb(232, 83, 166), rgb(251, 76, 102), rgb(250, 82, 82), rgb(250, 82, 82), rgb(250, 82, 82));
+   background: var(--gradient)
 }
 
 
-.mark {
-   &[data-filled] {
-      --_mark-bd: var(--mantine-color-gray-2);
-   }
-}

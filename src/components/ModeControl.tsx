@@ -1,8 +1,9 @@
 import { SegmentedControl } from "@mantine/core";
 import { ButtonCode, OperatingMode, ParsedDeviceStatus } from "../types";
+import { useEffect, useState } from "react";
 import { setTemperature } from "../hooks/useSetTemp";
 import { send_command } from "../commands";
-import { useSyncedState } from "../hooks";
+
 
 interface ModeControlProps {
     bedjet: string,
@@ -12,8 +13,8 @@ interface ModeControlProps {
 const ModeValues = ["Off", "Normal", "Heat", "Turbo"] as const;
 type Mode = typeof ModeValues[number]
 
-function getMode(data?: ParsedDeviceStatus): Mode | undefined {
-    if (!data) return undefined
+function getMode(data?: ParsedDeviceStatus): Mode {
+    if (!data) return "Off"
 
     if (data.operating_mode === OperatingMode.Standby) return "Off"
     if (data.operating_mode === OperatingMode.Cool) return "Normal"
@@ -26,11 +27,24 @@ function getMode(data?: ParsedDeviceStatus): Mode | undefined {
 }
 
 export function ModeControl({ bedjet, data }: ModeControlProps) {
-    const [value, setValue] = useSyncedState(undefined, getMode(data), bedjet)
+    const [value, setValue] = useState(getMode(data))
+
+    useEffect(() => {
+        const mode = value as Mode
+        if (mode === "Off") {
+            send_command(bedjet, {
+                type: "SetTime",
+                content: {
+                    hours: 0,
+                    minutes: 0,
+                },
+            });
+        }
+    }, [bedjet, value])
 
     return (
         <SegmentedControl
-            value={value}
+            value={getMode(data)}
             data={[...ModeValues]}
             onChange={(val) => {
                 const mode = val as Mode

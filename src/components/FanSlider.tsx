@@ -3,6 +3,7 @@ import { ParsedDeviceStatus } from "../types"
 import { send_command } from "../commands"
 import { IconPropeller } from '@tabler/icons-react';
 import { useSyncedState } from "../hooks";
+
 interface FanSliderProps {
     bedjet: string,
     data?: ParsedDeviceStatus
@@ -10,10 +11,13 @@ interface FanSliderProps {
 
 export default function FanSlider({ data, bedjet }: FanSliderProps) {
     const [value, setValue] = useSyncedState(data?.fan_step, 0, bedjet)
+ 
 
     if (!data) return (
         <Slider disabled={true} />
     )
+
+
 
     return (
         <>
@@ -49,7 +53,7 @@ export default function FanSlider({ data, bedjet }: FanSliderProps) {
 
                     },
                     thumb: {
-                        background: "var(--mantine-color-blue-6)",
+                        background: "var(--slider-color)",
                         height: rem(28),
                         width: rem(38),
                         border: "none"

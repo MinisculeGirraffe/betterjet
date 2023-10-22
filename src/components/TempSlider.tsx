@@ -1,4 +1,4 @@
-import { Slider, rem, Text, Group } from "@mantine/core";
+import { Slider, rem, Text, Group, useComputedColorScheme } from "@mantine/core";
 import { setTemperature } from "../hooks/useSetTemp";
 import { OperatingMode, ParsedDeviceStatus, TemperatureUnit } from "../types";
 import { CtoF, FtoC } from "../util";
@@ -16,7 +16,7 @@ interface TempSliderProps {
 
 
 export default function TempSlider({ bedjet, data }: TempSliderProps) {
-    const theme = useMantineTheme();
+
     const config = useConfig().data;
     console.log(data)
     const convert = (temp: number) => config?.unit === TemperatureUnit.Celsius ? temp : CtoF(temp);
@@ -24,7 +24,8 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
     const convertFixed = (temp: number) => toFixed(convert(temp));
     const tempSymbol = config?.unit === TemperatureUnit.Celsius ? "°C" : "°F";
     const [value, setValue] = useSyncedState(undefined, convertFixed(data?.target_temp ?? 0), bedjet)
-
+    const theme = useMantineTheme()
+    const computedColorScheme = useComputedColorScheme('light');
     if (!value || !data || !config) {
         return (
             <Slider disabled={true} />
@@ -35,8 +36,11 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
     // const actualPercent = (actualValue - min) / (max - min)
     const selectedPercent = (value - min) / (max - min);
 
-    const blue = theme.colors.blue[6]
-    const red = theme.colors.red[6]
+    const themeShade = typeof theme.primaryShade === "number" ? theme.primaryShade : theme.primaryShade[computedColorScheme]
+
+
+    const blue = theme.colors.blue[themeShade]
+    const red = theme.colors.red[themeShade]
 
     const gradientStep = chroma.scale([blue, red]).mode("hcl").padding(-0.75);
 
@@ -75,6 +79,9 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
                 }}
 
                 styles={{
+                    root: {
+                        "--gradient": `linear-gradient(to right, ${gradientStep.colors(10)})`
+                    } as React.CSSProperties,
                     thumb: {
                         backgroundColor: `${gradientStep(selectedPercent)}`,
                         height: rem(28),
