@@ -24,7 +24,7 @@ pub fn setup_state(app: &mut App) -> Result<(), Box<dyn Error>> {
     let db = sled::open(dirs.data_dir())?;
     tauri::async_runtime::block_on(async move {
         let state = AppState::new(handle.clone(), db).await;
-        state.scan_devices().await;
+        let _ = state.scan_devices().await;
         let state = Arc::new(RwLock::new(state));
 
         let task = {

@@ -56,9 +56,6 @@ pub async fn scan_devices(state: AppStateHandle<'_>) -> Result<Vec<PeripheralRes
 #[tauri::command]
 pub async fn connect_device(state: AppStateHandle<'_>, id: String) -> Result<(), ()> {
     state.write().await.connect_peripheral(&id).await.unwrap();
-
-    // tokio::spawn(async move { update_stream(app, bedjetid, recv).await });
-
     Ok(())
 }
 

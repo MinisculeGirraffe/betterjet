@@ -6,6 +6,7 @@ import { useMantineTheme } from '@mantine/core';
 import chroma from "chroma-js"
 import css from "./TempSlider.module.css"
 import { useConfig, useSyncedState } from "../hooks";
+import { match } from "ts-pattern";
 
 const percent = (value: number, min: number, max: number) => (value - min) / (max - min);
 const convert = (temp: number, config: UserPreferences) => config?.unit === TemperatureUnit.Celsius ? temp : CtoF(temp);
@@ -18,9 +19,11 @@ const getPrimaryShade = (theme: MantineTheme, colorScheme: "light" | "dark") =>
         : theme.primaryShade[colorScheme];
 
 const getTempSymbol = (unit?: TemperatureUnit) =>
-    unit ?? TemperatureUnit.Celsius === TemperatureUnit.Celsius
-        ? "°C"
-        : "°F";
+    match(unit)
+        .with(undefined, () => "°C")
+        .with(TemperatureUnit.Celsius, () => "°C")
+        .with(TemperatureUnit.Fahrenheit, () => "°F")
+        .exhaustive()
 
 interface TempSliderProps {
     bedjet: string,
@@ -29,6 +32,7 @@ interface TempSliderProps {
 
 export default function TempSlider({ bedjet, data }: TempSliderProps) {
     const config = useConfig().data;
+    console.log(config)
     const [value, setValue] = useSyncedState(undefined, convertFixed(data?.target_temp ?? 0, config!), bedjet)
 
     const theme = useMantineTheme()
@@ -39,7 +43,8 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
     const gradientStep = chroma.scale([blue, red]).mode("hcl").padding(-0.75);
 
     const tempSymbol = getTempSymbol(config?.unit)
-
+    console.log(config?.unit)
+    console.log(tempSymbol)
     if (!value || !data || !config) {
         return (
             <Slider disabled={true} />
@@ -70,7 +75,7 @@ export default function TempSlider({ bedjet, data }: TempSliderProps) {
             }
             labelAlwaysOn
             value={value}
-            label={(label) => `${config.unit === TemperatureUnit.Celsius ? label : Math.round(label)}${tempSymbol}`}
+            label={(label) => `${config.unit === TemperatureUnit.Celsius ? label : Math.round(label)}${getTempSymbol(config?.unit)}`}
             onChange={(val) => setValue(val)}
             onChangeEnd={(value) => {
                 setTemperature(bedjet, data, { type: "Celsius", value: config.unit === TemperatureUnit.Celsius ? value : FtoC(value) })
