@@ -166,7 +166,7 @@ pub async fn handle_events(state: Arc<RwLock<AppState>>) -> Result<(), btleplug:
                     connected: false,
                 });
                 println!("Emitting: {:#?}", event);
-                let _ = handle.emit_all("DeviceEvent", event);
+                let _ = handle.emit("DeviceEvent", event);
             }
             CentralEvent::DeviceDisconnected(id) => {
                 let id = id.to_string();
@@ -177,7 +177,7 @@ pub async fn handle_events(state: Arc<RwLock<AppState>>) -> Result<(), btleplug:
                     connected: false,
                 });
                 println!("Emitting: {:#?}", event);
-                let _ = handle.emit_all("DeviceEvent", event);
+                let _ = handle.emit("DeviceEvent", event);
             }
             CentralEvent::DeviceConnected(id) => {
                 let id = id.to_string();
@@ -188,7 +188,7 @@ pub async fn handle_events(state: Arc<RwLock<AppState>>) -> Result<(), btleplug:
                     connected: true,
                 });
                 println!("Emitting: {:#?}", event);
-                let _ = handle.emit_all("DeviceEvent", event);
+                let _ = handle.emit("DeviceEvent", event);
             }
             _ => {}
         };
@@ -491,7 +491,7 @@ impl BedJet {
         if let Some(handle) = handle {
             if prev != Some(status) {
                 let status = ParsedDeviceStatus::from(status);
-                let res = handle.emit_all(&self.id, status);
+                let _ = handle.emit(&self.id, status);
                 //  println!("Emitting: {:#?}", status);
             }
         }

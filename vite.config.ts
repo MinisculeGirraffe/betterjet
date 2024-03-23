@@ -1,31 +1,32 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import { internalIpV4 } from "internal-ip";
 
-export default defineConfig({
-  plugins: [react(), ],
-  // prevent vite from obscuring rust errors
+const mobile = !!/android|ios/.exec(process.env.TAURI_ENV_PLATFORM);
+
+// https://vitejs.dev/config/
+export default defineConfig(async () => ({
+  plugins: [react()],
+
+  // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
+  //
+  // 1. prevent vite from obscuring rust errors
   clearScreen: false,
+  // 2. tauri expects a fixed port, fail if that port is not available
   server: {
-    host: "10.1.20.70", // listen on all addresses
-    port: 5173,
-    // Tauri expects a fixed port, fail if that port is not available
+    port: 1420,
     strictPort: true,
-    hmr: {
-      protocol: "ws",
-      host: "10.1.20.70",
-      port: 5183,
+    host: mobile ? "0.0.0.0" : false,
+    hmr: mobile
+      ? {
+          protocol: "ws",
+          host: await internalIpV4(),
+          port: 1421,
+        }
+      : undefined,
+    watch: {
+      // 3. tell vite to ignore watching `src-tauri`
+      ignored: ["**/src-tauri/**"],
     },
   },
-  // to make use of `TAURI_PLATFORM`, `TAURI_ARCH`, `TAURI_FAMILY`,
-  // `TAURI_PLATFORM_VERSION`, `TAURI_PLATFORM_TYPE` and `TAURI_DEBUG`
-  // env variables
-  envPrefix: ["VITE_", "TAURI_"],
-  build: {
-    // Tauri supports es2021
-    target: ["es2021", "chrome100", "safari13"],
-    // don't minify for debug builds
-    minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
-    // produce sourcemaps for debug builds
-    sourcemap: !!process.env.TAURI_DEBUG,
-  },
-});
+}));

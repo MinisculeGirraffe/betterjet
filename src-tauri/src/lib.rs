@@ -9,7 +9,7 @@ use commands::{
 };
 use directories::ProjectDirs;
 use state::AppState;
-use tauri::{App, GlobalWindowEvent, Manager};
+use tauri::{App, Manager, Runtime, Window, WindowEvent};
 use tokio::sync::RwLock;
 
 use crate::{
@@ -39,9 +39,9 @@ pub fn setup_state(app: &mut App) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn handle_window_event(event: GlobalWindowEvent) {
-    if let tauri::WindowEvent::CloseRequested { .. } = event.event() {
-        let Some(state) = event.window().app_handle().try_state::<AppState>() else {
+pub fn handle_window_event<R: Runtime>(window:&Window<R>, event: &WindowEvent) {
+    if let tauri::WindowEvent::CloseRequested { .. } = event {
+        let Some(state) = window.app_handle().try_state::<AppState>() else {
             return;
         };
         let _ = state.db.flush();
