@@ -6,6 +6,8 @@ import {
   PeripheralResult,
   UserPreferences,
 } from "./types";
+import { Store } from "@tauri-apps/plugin-store";
+
 
 export async function get_adapters(): Promise<AdapterResult> {
   return invoke("get_btle_adapters");
@@ -33,10 +35,13 @@ export async function get_status(
   return invoke("get_status", { id });
 }
 
-export async function get_config(): Promise<UserPreferences> {
-  return invoke("get_config");
+
+const store = new Store(".settings.dat");
+
+export async function get_config(): Promise<UserPreferences | null> {
+  return store.get("config");
 }
 
 export async function set_config(config: UserPreferences): Promise<void> {
-  invoke("set_config", { config });
+    await store.set("config", config);
 }

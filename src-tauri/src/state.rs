@@ -54,7 +54,7 @@ impl AppState {
     pub async fn new(handle: AppHandle, db: sled::Db) -> AppState {
         let manager = btleplug::platform::Manager::new().await.unwrap();
         let adapters = manager.adapters().await.unwrap();
-        let mut value = AppState {
+        let value = AppState {
             handle,
             btle_manager: manager,
             selected_adapter: adapters.first().unwrap().clone(),

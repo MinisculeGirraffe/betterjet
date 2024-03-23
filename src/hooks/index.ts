@@ -115,7 +115,7 @@ function useDeviceListSubscription() {
     );
   }, [queryClient]);
 
-  return useSubscription<DeviceEvent>("DeviceEvent", handleEvent);
+  useSubscription<DeviceEvent>("DeviceEvent", handleEvent);
 }
 
 function useDeviceStatusSubscription(id: string) {

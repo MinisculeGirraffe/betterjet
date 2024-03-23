@@ -63,6 +63,7 @@ pub fn run() {
             set_config,
         ])
         .on_window_event(handle_window_event)
+        .plugin(tauri_plugin_store::Builder::default().build())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
